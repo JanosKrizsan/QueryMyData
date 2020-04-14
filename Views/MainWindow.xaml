@@ -1,0 +1,73 @@
+﻿<Window x:Class="QueryMyData.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:QueryMyData.ViewModels"
+        xmlns:local="clr-namespace:QueryMyData"
+        mc:Ignorable="d"
+        Title="Query My Data" Height="300" Width="400" ResizeMode="NoResize">
+    <Window.DataContext>
+        <vm:MainWindowVM/>
+    </Window.DataContext>
+    <Window.Resources>
+        <Style x:Key="ButtonGeneric" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="MaxWidth" Value="80"/>
+            <Setter Property="Margin" Value="0,20,0,0"/>
+        </Style>
+        <Style x:Key="LabelGeneric" TargetType="{x:Type Label}">
+            <Setter Property="Margin" Value="0,20,0,0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StackPanelGeneric" TargetType="{x:Type StackPanel}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="MaxWidth" Value="200"/>
+            <Setter Property="MaxHeight" Value="300"/>
+        </Style>
+        <Style x:Key="TextBoxGeneric" TargetType="{x:Type TextBox}">
+            <Setter Property="MaxHeight" Value="150"/>
+            <Setter Property="MaxWidth" Value="180"/>
+            <Setter Property="Margin" Value="0,20,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Column="0"  Style="{StaticResource StackPanelGeneric}">
+            <Label Style="{StaticResource LabelGeneric}" Content="Enter your query here:"/>
+            <TextBox Style="{StaticResource TextBoxGeneric}" Text="{Binding Query}" x:Name="queryBox">
+                <TextBox.InputBindings>
+                    <KeyBinding Command="{Binding RunQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}" Key="Enter"/>
+                </TextBox.InputBindings>
+            </TextBox>
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="_Apply" Command="{Binding RunQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}"/>
+            <Button Style="{StaticResource ButtonGeneric}"
+                    Content="_Guide" Command="{Binding ShowGuideCommand}"/>
+            <Button Style="{StaticResource ButtonGeneric}"
+                    Content="_Columns" Command="{Binding ShowColumnInfoCommand}"/>
+        </StackPanel >
+        <StackPanel Grid.Column="1" Style="{StaticResource StackPanelGeneric}">
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="_Read File" Command="{Binding ReadFileCommand}"/>
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="Query to CSV" Command="{Binding QueryToCSVCommand}"/>
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="_Query to XML" Command="{Binding QueryToXMLCommand}"/>
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="Data to CSV" Command="{Binding DataToCSVCommand}"/>
+            <Button Style="{StaticResource ButtonGeneric}" 
+                    Content="_Data to XML" Command="{Binding DataToXMLCommand}"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -37,7 +37,6 @@ namespace QueryMyData.Models
                 1 => MessageBoxImage.Warning,
                 3 => MessageBoxImage.Error,
                 4 => MessageBoxImage.Exclamation,
-                5 => MessageBoxImage.Hand,
                 _ => MessageBoxImage.Information,
             };
         }

@@ -13,12 +13,14 @@ namespace QueryMyData.Models
         private const string _master = @"Server=localhost;Integrated Security=SSPI;database=master";
         private string _filePath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         private string[] _columns = new string[0];
-        public string Columns { get => string.Join(" ,", _columns); }
+        public string Columns { get => string.Join(",", _columns); }
         public bool CheckQuery(string query)
         {
             if (string.IsNullOrWhiteSpace(query) ||
-                query.Contains("drop database", StringComparison.InvariantCultureIgnoreCase) ||
-                !query.Last().Equals(";") ||
+                query.Contains("drop", StringComparison.InvariantCultureIgnoreCase) ||
+                query.Contains("alter", StringComparison.InvariantCultureIgnoreCase) ||
+                query.Contains("create", StringComparison.InvariantCultureIgnoreCase) ||
+                !(query.Last() == ';') ||
                 query.Length < 8
                 )
             {
@@ -30,7 +32,7 @@ namespace QueryMyData.Models
         public void CreateDatabase(string name)
         {
             ClearDatabase(name);
-            _connString = @$"Server=localhost;Integrated Security=SSPI;Database={name};";
+            SetConnectionString(name);
             using (var conn = Connect(_master))
             {
                 var query = $"CREATE DATABASE {name} ON PRIMARY " +
@@ -48,13 +50,52 @@ namespace QueryMyData.Models
             }
         }
 
-        public void RunQuery(string query)
+        public DataTable RunQuery(string query, string dbName)
         {
-            var data = new List<string>();
+            var resTable = new DataTable()
+            {
+                TableName = "results"
+            };
+
+            SetConnectionString(dbName);
             using (var conn = Connect(_connString))
             {
                 using var cmd = new SqlCommand(query, conn);
-                using var reader = cmd.ExecuteReader();
+                try
+                {
+                    using var rdr = cmd.ExecuteReader();
+
+                    if (rdr.HasRows)
+                    {
+                        while (rdr.Read())
+                        {
+                            var fieldN = rdr.FieldCount;
+                            var resObjects = new object[fieldN];
+                            for (var i = 0; i < fieldN; i++)
+                            {
+                                resObjects[i] = rdr.GetValue(i);
+                            }
+
+                            if (resTable.Columns.Count < fieldN)
+                            {
+                                for (var i = 0; i < resObjects.Length; i++)
+                                {
+                                    resTable.Columns.Add(i.ToString(), resObjects[i].GetType());
+                                    if (resTable.Columns.Count == fieldN)
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                            resTable.Rows.Add(resObjects);
+                        }
+                    }
+                }
+                catch
+                {
+                    return resTable;
+                }
+                return resTable;
             }
         }
 
@@ -103,6 +144,33 @@ namespace QueryMyData.Models
             FillTableData(cols.Select(col => col.Item2).ToArray(), uniqueRows, tableName);
         }
 
+        public string ReadSchemaInfo(bool isTableInfo)
+        {
+            var subGroup = isTableInfo ? "TABLES" : "COLUMNS";
+            var resField = isTableInfo ? "TABLE_NAME" : "COLUMN_NAME";
+            try
+            {
+                using (var conn = Connect(_connString))
+                {
+                    var cmdText = $"SELECT * FROM INFORMATION_SCHEMA.{subGroup}";
+                    using var cmd = new SqlCommand(cmdText, conn);
+                    using var rdr = cmd.ExecuteReader();
+
+                    var columns = new List<string>();
+                    while (rdr.Read())
+                    {
+                        columns.Add(rdr[resField].ToString());
+                    }
+
+                    return string.Join(",", columns);
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         private void FillTableData(string[] types, Dictionary<string, object[]> uniqueRows, string tableName)
         {
             using (var conn = Connect(_connString))
@@ -116,14 +184,12 @@ namespace QueryMyData.Models
 
                     for (var i = 0; i < _columns.Length; i++)
                     {
-                        var param = new SqlParameter($"@{_columns[i] }", items[i]);
-                        param.SqlDbType = GetSqlType(types[i]);
-                        param.DbType = GetDbType(types[i]);
+                        var param = new SqlParameter($"@{_columns[i]}", items[i]);
                         param.IsNullable = true;
 
                         cmd.Parameters.Add(param);
-                    }
 
+                    }
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -133,8 +199,8 @@ namespace QueryMyData.Models
 
         private string CreateInsertString(string tName)
         {
-            return new StringBuilder().Append($"INSERT INTO dbo.{tName} (")
-                .Append($"{Columns}) ")
+            return new StringBuilder().Append($"INSERT INTO {tName} (")
+                .Append($"{Columns}) VALUES ")
                 .Append($"({string.Join(", ", _columns.Select(c => $"@{c}"))})").ToString();
         }
 
@@ -149,27 +215,43 @@ namespace QueryMyData.Models
         {
             using (var conn = Connect(_master))
             {
-                using var cmd2 = new SqlCommand($"DROP DATABASE {name};", conn);
-                try
-                {
-                    cmd2.ExecuteNonQuery();
-                }
-                catch
-                {
-                    //log would come here
-                }
+                using var cmd = new SqlCommand($"DROP DATABASE IF EXISTS {name};", conn);
+                cmd.ExecuteNonQuery();
             }
         }
 
-        private void CheckDatabaseExists(string dbName)
+        public bool CheckDatabaseExists(string dbName)
         {
 
             using (var conn = Connect(_master))
             {
                 using var cmd = new SqlCommand("SELECT name FROM master.sys.databases;", conn);
-                using var dbs = cmd.ExecuteReader();
+                using var rdr = cmd.ExecuteReader();
+
+                var names = new List<string>();
+                while (rdr.Read())
+                {
+                    names.Add(rdr["name"].ToString());
+                }
+
+                if (names.Contains(dbName))
+                {
+                    SetConnectionString(dbName);
+                    return true;
+                }
+                return false;
             }
         }
+        public bool CheckTableExists(string table)
+        {
+            return ReadSchemaInfo(false).Contains(table);
+        }
+
+        private void SetConnectionString(string dbName = null)
+        {
+            _connString = string.IsNullOrWhiteSpace(dbName) ? _master : @$"Server=localhost;Integrated Security=SSPI;Database={dbName};";
+        }
+
 
         private string TypeConverter(Type type)
         {

@@ -47,15 +47,15 @@
             <Label Style="{StaticResource LabelGeneric}" Content="Enter your query here:"/>
             <TextBox Style="{StaticResource TextBoxGeneric}" Text="{Binding Query}" x:Name="queryBox">
                 <TextBox.InputBindings>
-                    <KeyBinding Command="{Binding RunQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}" Key="Enter"/>
+                    <KeyBinding Command="{Binding AddQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}" Key="Enter"/>
                 </TextBox.InputBindings>
             </TextBox>
             <Button Style="{StaticResource ButtonGeneric}" 
-                    Content="_Apply" Command="{Binding RunQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}"/>
+                    Content="_Apply" Command="{Binding AddQueryCommand}" CommandParameter="{Binding Text, ElementName=queryBox}"/>
             <Button Style="{StaticResource ButtonGeneric}"
                     Content="_Guide" Command="{Binding ShowGuideCommand}"/>
             <Button Style="{StaticResource ButtonGeneric}"
-                    Content="_Columns" Command="{Binding ShowColumnInfoCommand}"/>
+                    Content="_Table Info" Command="{Binding ShowTableInfoCommand}"/>
         </StackPanel >
         <StackPanel Grid.Column="1" Style="{StaticResource StackPanelGeneric}">
             <Button Style="{StaticResource ButtonGeneric}" 

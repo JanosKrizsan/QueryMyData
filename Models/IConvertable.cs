@@ -5,6 +5,6 @@ namespace QueryMyData.Models
     public interface IConvertable
     {
         public void ConvertData(DataSet data);
-        public void ConvertQuery();
+        public bool ConvertQuery(DataTable data, int queryHash);
     }
 }
